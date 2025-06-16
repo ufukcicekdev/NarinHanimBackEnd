@@ -81,6 +81,47 @@ class Medicine(models.Model):
     def __str__(self):
         return f"{self.name} for {self.visit}"
 
+class VisitStage(models.Model):
+    """Ziyaretin etapları - her etapta farklı muayene bilgileri"""
+    visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='stages')
+    stage_number = models.PositiveIntegerField(verbose_name="Etap Numarası")
+    date = models.DateTimeField(verbose_name="Etap Tarihi")
+    complaint = models.TextField(verbose_name="Şikayet", help_text="Hastanın bu etaptaki şikayetleri")
+    notes = models.TextField(blank=True, verbose_name="Etap Notları")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['stage_number']
+        unique_together = ['visit', 'stage_number']
+
+    def __str__(self):
+        return f"Etap {self.stage_number} - {self.visit}"
+
+class StageEyeImage(models.Model):
+    """Her etaptaki göz fotoğrafları"""
+    stage = models.ForeignKey(VisitStage, on_delete=models.CASCADE, related_name='eye_images')
+    image = models.ImageField(upload_to='stage_eye_images/', verbose_name="Göz Fotoğrafı")
+    description = models.TextField(blank=True, verbose_name="Açıklama")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Göz Fotoğrafı - Etap {self.stage.stage_number}"
+
+class StageMedicine(models.Model):
+    """Her etaptaki ilaç bilgileri"""
+    stage = models.ForeignKey(VisitStage, on_delete=models.CASCADE, related_name='medicines')
+    name = models.CharField(max_length=200, verbose_name="İlaç Adı")
+    dosage = models.CharField(max_length=100, verbose_name="Doz")
+    frequency = models.CharField(max_length=100, verbose_name="Kullanım Sıklığı")
+    duration = models.CharField(max_length=100, verbose_name="Kullanım Süresi")
+    notes = models.TextField(blank=True, verbose_name="İlaç Notları")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - Etap {self.stage.stage_number}"
+
+# Eski modelleri koruyalım ama artık kullanmayacağız
 class IrisImage(models.Model):
     visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='iris_images')
     image = models.ImageField(upload_to='iris_images/')

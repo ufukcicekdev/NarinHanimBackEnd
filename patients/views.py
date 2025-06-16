@@ -2,10 +2,11 @@ from django.shortcuts import render
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Patient, Visit, HerbalTreatment, Medicine, IrisImage
+from .models import Patient, Visit, HerbalTreatment, Medicine, IrisImage, VisitStage, StageEyeImage, StageMedicine
 from .serializers import (
     PatientSerializer, VisitSerializer, HerbalTreatmentSerializer,
-    MedicineSerializer, IrisImageSerializer
+    MedicineSerializer, IrisImageSerializer, VisitStageSerializer,
+    StageEyeImageSerializer, StageMedicineSerializer
 )
 
 # Create your views here.
@@ -94,4 +95,43 @@ class MedicineViewSet(viewsets.ModelViewSet):
 class IrisImageViewSet(viewsets.ModelViewSet):
     queryset = IrisImage.objects.all()
     serializer_class = IrisImageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class VisitStageViewSet(viewsets.ModelViewSet):
+    queryset = VisitStage.objects.all()
+    serializer_class = VisitStageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        visit_id = self.request.query_params.get('visit_id', None)
+        if visit_id:
+            return VisitStage.objects.filter(visit_id=visit_id)
+        return VisitStage.objects.all()
+
+    @action(detail=True, methods=['post'])
+    def add_eye_image(self, request, pk=None):
+        stage = self.get_object()
+        serializer = StageEyeImageSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(stage=stage)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_medicine(self, request, pk=None):
+        stage = self.get_object()
+        serializer = StageMedicineSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(stage=stage)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class StageEyeImageViewSet(viewsets.ModelViewSet):
+    queryset = StageEyeImage.objects.all()
+    serializer_class = StageEyeImageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class StageMedicineViewSet(viewsets.ModelViewSet):
+    queryset = StageMedicine.objects.all()
+    serializer_class = StageMedicineSerializer
     permission_classes = [permissions.IsAuthenticated]
