@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Patient(models.Model):
+    patient_code = models.CharField(max_length=30, blank=True, verbose_name="Hasta Kodu", help_text="Manuel hasta kodu (opsiyonel)")
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     birth_date = models.DateField()
@@ -11,7 +12,9 @@ class Patient(models.Model):
         ('O', 'Other'),
     ]
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
-    contact_info = models.CharField(max_length=200)
+    phone = models.CharField(max_length=20, blank=True, verbose_name="Telefon")
+    email = models.EmailField(blank=True, verbose_name="E-posta")
+    tc_no = models.CharField(max_length=11, blank=True, verbose_name="TC Kimlik No")
     
     # Adres Bilgileri
     city = models.CharField(max_length=100, blank=True, verbose_name="İl")
@@ -47,6 +50,7 @@ class Visit(models.Model):
     visit_date = models.DateTimeField()
     diagnosis = models.TextField()
     notes = models.TextField(blank=True)
+    document = models.FileField(upload_to='visit_documents/', blank=True, null=True, verbose_name="Ziyaret Dokümanı")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -23,14 +23,14 @@ class VisitSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Visit
-        fields = ['id', 'visit_date', 'diagnosis', 'notes', 'herbal_treatments', 
-                 'medicines', 'iris_images', 'created_at']
+        fields = ['id', 'patient', 'visit_date', 'diagnosis', 'notes', 'document', 'herbal_treatments', 
+                 'medicines', 'iris_images', 'created_at', 'updated_at']
 
 class PatientSerializer(serializers.ModelSerializer):
     visits = VisitSerializer(many=True, read_only=True)
 
     class Meta:
         model = Patient
-        fields = ['id', 'first_name', 'last_name', 'birth_date', 'gender',
-                 'contact_info', 'city', 'district', 'address', 'blood_type', 
+        fields = ['id', 'patient_code', 'first_name', 'last_name', 'birth_date', 'gender',
+                 'phone', 'email', 'tc_no', 'city', 'district', 'address', 'blood_type', 
                  'allergies', 'notes', 'visits', 'created_at', 'updated_at'] 

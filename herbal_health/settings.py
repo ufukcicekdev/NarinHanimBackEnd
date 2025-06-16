@@ -13,10 +13,11 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
+
+
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(Path(__file__).resolve().parent.parent, '.env'))
-
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -86,13 +87,13 @@ WSGI_APPLICATION = "herbal_health.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv('DB_NAME', 'narinhanim'),
-        "USER": os.getenv('DB_USER', 'postgres'),
-        "PASSWORD": os.getenv('DB_PASSWORD', 'postgres'),
-        "HOST": os.getenv('DB_HOST', 'localhost'),
-        "PORT": os.getenv('DB_PORT', '5432'),
+        "NAME": os.getenv('DB_NAME'),
+        "USER": os.getenv('DB_USER'),
+        "PASSWORD": os.getenv('DB_PASSWORD'),
+        "HOST": os.getenv('DB_HOST'),
+        "PORT": os.getenv('DB_PORT'),
         "OPTIONS": {
-            "sslmode": "require" if os.getenv('RAILWAY_ENVIRONMENT') else "disable",
+            "sslmode": "require" if os.getenv('DB_HOST') != 'localhost' else "disable",
         },
     }
 }
