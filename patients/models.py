@@ -1,5 +1,28 @@
 from django.db import models
 from django.contrib.auth.models import User
+import uuid
+import os
+
+
+def visit_document_upload_path(instance, filename):
+    """Generate upload path for visit documents"""
+    ext = filename.split('.')[-1]
+    filename = f"{uuid.uuid4()}.{ext}"
+    return f"visit_documents/{instance.patient.id}/{filename}"
+
+
+def stage_eye_image_upload_path(instance, filename):
+    """Generate upload path for stage eye images"""
+    ext = filename.split('.')[-1]
+    filename = f"{uuid.uuid4()}.{ext}"
+    return f"stage_eye_images/{instance.stage.visit.patient.id}/{instance.stage.id}/{filename}"
+
+
+def iris_image_upload_path(instance, filename):
+    """Generate upload path for iris images"""
+    ext = filename.split('.')[-1]
+    filename = f"{uuid.uuid4()}.{ext}"
+    return f"iris_images/{instance.visit.patient.id}/{filename}"
 
 class Patient(models.Model):
     patient_code = models.CharField(max_length=30, blank=True, verbose_name="Hasta Kodu", help_text="Manuel hasta kodu (opsiyonel)")
@@ -50,7 +73,7 @@ class Visit(models.Model):
     visit_date = models.DateTimeField()
     diagnosis = models.TextField()
     notes = models.TextField(blank=True)
-    document = models.FileField(upload_to='visit_documents/', blank=True, null=True, verbose_name="Ziyaret Dokümanı")
+    document = models.FileField(upload_to=visit_document_upload_path, blank=True, null=True, verbose_name="Ziyaret Dokümanı")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -101,7 +124,7 @@ class VisitStage(models.Model):
 class StageEyeImage(models.Model):
     """Her etaptaki göz fotoğrafları"""
     stage = models.ForeignKey(VisitStage, on_delete=models.CASCADE, related_name='eye_images')
-    image = models.ImageField(upload_to='stage_eye_images/', verbose_name="Göz Fotoğrafı")
+    image = models.ImageField(upload_to=stage_eye_image_upload_path, verbose_name="Göz Fotoğrafı")
     description = models.TextField(blank=True, verbose_name="Açıklama")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -124,7 +147,7 @@ class StageMedicine(models.Model):
 # Eski modelleri koruyalım ama artık kullanmayacağız
 class IrisImage(models.Model):
     visit = models.ForeignKey(Visit, on_delete=models.CASCADE, related_name='iris_images')
-    image = models.ImageField(upload_to='iris_images/')
+    image = models.ImageField(upload_to=iris_image_upload_path)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
