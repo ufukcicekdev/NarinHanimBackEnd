@@ -37,6 +37,7 @@ ALLOWED_HOSTS = ['*']  # Railway için gerekli
 # Application definition
 
 INSTALLED_APPS = [
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -185,3 +186,101 @@ SIMPLE_JWT = {
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True  # Only for development
 CORS_ALLOW_CREDENTIALS = True
+
+# Jazzmin settings
+JAZZMIN_SETTINGS = {
+    "site_title": "Bitkisel Sağlık Admin",
+    "site_header": "Bitkisel Sağlık",
+    "site_brand": "Sağlık Yönetimi",
+    "site_logo": None,
+    "login_logo": None,
+    "login_logo_dark": None,
+    "site_logo_classes": "img-circle",
+    "site_icon": None,
+    "welcome_sign": "Bitkisel Sağlık Yönetim Paneline Hoş Geldiniz",
+    "copyright": "Bitkisel Sağlık Ltd.",
+    "search_model": ["auth.User", "patients.Patient"],
+    "user_avatar": None,
+
+    # Top Menu
+    "topmenu_links": [
+        {"name": "Ana Sayfa", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Hastalar", "url": "admin:patients_patient_changelist", "permissions": ["patients.view_patient"]},
+        {"name": "Ziyaretler", "url": "admin:patients_visit_changelist", "permissions": ["patients.view_visit"]},
+        {"model": "auth.User"},
+        {"app": "patients"},
+    ],
+
+    # User Menu
+    "usermenu_links": [
+        {"name": "Destek", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+        {"model": "auth.user"}
+    ],
+
+    # Side Menu
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+    "order_with_respect_to": ["auth", "patients"],
+
+    # Icons
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "patients.Patient": "fas fa-user-injured",
+        "patients.Visit": "fas fa-calendar-check",
+        "patients.UserProfile": "fas fa-user-tag",
+        "patients.VisitStage": "fas fa-list-ol",
+        "patients.StageEyeImage": "fas fa-eye",
+        "patients.StageMedicine": "fas fa-pills",
+    },
+
+    # UI Tweaks
+    "custom_links": {
+        "patients": [{
+            "name": "Hasta Raporu Oluştur", 
+            "url": "admin:patients_patient_changelist", 
+            "icon": "fas fa-chart-line",
+            "permissions": ["patients.view_patient"]
+        }]
+    },
+    "use_google_fonts_cdn": True,
+    "show_ui_builder": False,
+
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {"auth.user": "collapsible", "auth.group": "vertical_tabs"},
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-success",
+    "accent": "accent-teal",
+    "navbar": "navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": False,
+    "sidebar": "sidebar-dark-info",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "cyborg",
+    "dark_mode_theme": "cyborg",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}

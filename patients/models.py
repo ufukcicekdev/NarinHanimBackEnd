@@ -4,6 +4,57 @@ import uuid
 import os
 
 
+class UserProfile(models.Model):
+    USER_TYPE_CHOICES = [
+        ('patient_manager', 'Hasta Yöneticisi'),  # Normal hasta girişlerini yapan
+        ('logistic', 'Lojistik'),  # Farklı dashboard kullanacak
+    ]
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES, default='patient_manager')
+    
+    def __str__(self):
+        return f"{self.user.username} ({self.get_user_type_display()})"
+
+
+class ProductionOrder(models.Model):
+    ORDER_STATUS_CHOICES = [
+        # Paket Hazırlama Süreci
+        ('package_requested', 'Paket Hazırlama Talep Edildi'),
+        ('package_preparing', 'Paket Hazırlanıyor'),
+        ('package_ready', 'Paket Hazırlandı'),
+        
+        # Üretim Süreci  
+        ('production_requested', 'Üretime Gönderme Talep Edildi'),
+        ('production_preparing', 'Üretime Hazırlanıyor'),
+        ('production_sent', 'Üretime Gönderildi'),
+        ('production_completed', 'Üretim Tamamlandı'),
+        
+        # Kargo Süreci
+        ('cargo_requested', 'Kargo Hazırlama Talep Edildi'), 
+        ('cargo_preparing', 'Kargo Hazırlanıyor'),
+        ('cargo_ready', 'Kargo Hazırlandı'),
+        ('cargo_shipped', 'Kargoya Verildi'),
+        
+        # Tamamlama
+        ('completed', 'Tamamlandı'),
+    ]
+    
+    medicine = models.ForeignKey('StageMedicine', on_delete=models.CASCADE, related_name='production_orders')
+    status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES)
+    patient_name = models.CharField(max_length=200)  # Hasta adı cache için
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.medicine.name} - {self.get_status_display()}"
+
+
 def visit_document_upload_path(instance, filename):
     """Generate upload path for visit documents"""
     ext = filename.split('.')[-1]

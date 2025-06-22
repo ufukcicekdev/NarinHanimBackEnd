@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Patient, Visit, HerbalTreatment, Medicine, IrisImage, VisitStage, StageEyeImage, StageMedicine
+from .models import Patient, Visit, HerbalTreatment, Medicine, IrisImage, VisitStage, StageEyeImage, StageMedicine, ProductionOrder
 
 class StageEyeImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -7,9 +7,26 @@ class StageEyeImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'stage', 'image', 'description', 'created_at']
 
 class StageMedicineSerializer(serializers.ModelSerializer):
+    production_orders = serializers.SerializerMethodField()
+    
     class Meta:
         model = StageMedicine
-        fields = ['id', 'stage', 'name', 'dosage', 'frequency', 'duration', 'notes', 'created_at']
+        fields = ['id', 'stage', 'name', 'dosage', 'frequency', 'duration', 'notes', 'created_at', 'production_orders']
+    
+    def get_production_orders(self, obj):
+        orders = obj.production_orders.all()
+        return ProductionOrderSerializer(orders, many=True).data
+
+
+class ProductionOrderSerializer(serializers.ModelSerializer):
+    medicine_name = serializers.CharField(source='medicine.name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    
+    class Meta:
+        model = ProductionOrder
+        fields = ['id', 'medicine', 'medicine_name', 'status', 'status_display', 'patient_name', 
+                 'created_by', 'created_by_username', 'created_at', 'updated_at', 'completed_at', 'notes']
 
 class VisitStageSerializer(serializers.ModelSerializer):
     eye_images = StageEyeImageSerializer(many=True, read_only=True)
