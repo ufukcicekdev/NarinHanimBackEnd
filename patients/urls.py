@@ -16,4 +16,7 @@ router.register(r'production-orders', views.ProductionOrderViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('logistic-stats/', views.logistic_dashboard_stats, name='logistic-stats'),
+    path('notifications/', views.get_notifications, name='get-notifications'),
+    path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark-notification-read'),
+    path('notifications/read-all/', views.mark_all_notifications_read, name='mark-all-notifications-read'),
 ] 

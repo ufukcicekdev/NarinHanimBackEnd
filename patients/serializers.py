@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Patient, Visit, HerbalTreatment, Medicine, IrisImage, VisitStage, StageEyeImage, StageMedicine, ProductionOrder
+from .models import Patient, Visit, HerbalTreatment, Medicine, IrisImage, VisitStage, StageEyeImage, StageMedicine, ProductionOrder, Notification
 
 class StageEyeImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -61,6 +61,25 @@ class VisitSerializer(serializers.ModelSerializer):
         model = Visit
         fields = ['id', 'patient', 'visit_date', 'diagnosis', 'notes', 'document', 'herbal_treatments', 
                  'medicines', 'iris_images', 'stages', 'created_at', 'updated_at']
+
+class NotificationSerializer(serializers.ModelSerializer):
+    production_order_id = serializers.SerializerMethodField()
+    medicine_name = serializers.SerializerMethodField()
+    patient_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'message', 'notification_type', 'target_user_type', 
+                 'production_order_id', 'medicine_name', 'patient_name', 'is_read', 'created_at']
+    
+    def get_production_order_id(self, obj):
+        return obj.production_order.id if obj.production_order else None
+    
+    def get_medicine_name(self, obj):
+        return obj.production_order.medicine.name if obj.production_order and obj.production_order.medicine else None
+    
+    def get_patient_name(self, obj):
+        return obj.production_order.patient_name if obj.production_order else None
 
 class PatientSerializer(serializers.ModelSerializer):
     visits = VisitSerializer(many=True, read_only=True)

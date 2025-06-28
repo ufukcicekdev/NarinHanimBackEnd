@@ -205,3 +205,30 @@ class IrisImage(models.Model):
 
     def __str__(self):
         return f"Iris image for {self.visit}"
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('production_request', 'Üretim Talebi'),
+        ('status_update', 'Durum Güncelleme'),
+        ('production_complete', 'İşlem Tamamlandı'),
+    ]
+    
+    USER_TYPES = [
+        ('patient_manager', 'Hasta Yöneticisi'),
+        ('logistic', 'Lojistik'),
+    ]
+    
+    title = models.CharField(max_length=200, verbose_name="Başlık")
+    message = models.TextField(verbose_name="Mesaj")
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    target_user_type = models.CharField(max_length=20, choices=USER_TYPES, verbose_name="Hedef Kullanıcı Tipi")
+    production_order = models.ForeignKey(ProductionOrder, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
+    is_read = models.BooleanField(default=False, verbose_name="Okundu mu?")
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.get_target_user_type_display()}"

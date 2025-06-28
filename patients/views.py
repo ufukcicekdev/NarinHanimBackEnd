@@ -7,13 +7,14 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.db.models import Count
 from django.utils import timezone
 from datetime import datetime, timedelta
-from .models import Patient, Visit, HerbalTreatment, Medicine, IrisImage, VisitStage, StageEyeImage, StageMedicine, UserProfile, ProductionOrder
+from .models import Patient, Visit, HerbalTreatment, Medicine, IrisImage, VisitStage, StageEyeImage, StageMedicine, UserProfile, ProductionOrder, Notification
 from .serializers import (
     PatientSerializer, VisitSerializer, HerbalTreatmentSerializer,
     MedicineSerializer, IrisImageSerializer, VisitStageSerializer,
-    StageEyeImageSerializer, StageMedicineSerializer, ProductionOrderSerializer
+    StageEyeImageSerializer, StageMedicineSerializer, ProductionOrderSerializer, NotificationSerializer
 )
 from .pdf_generator import generate_production_order_pdf_response
+from .notification_utils import create_production_request_notification, create_status_update_notification, create_completion_notification
 
 # Create your views here.
 
@@ -54,8 +55,8 @@ def logistic_dashboard_stats(request):
         
         # Üretim emirleri istatistikleri
         total_orders = ProductionOrder.objects.count()
-        pending_orders = ProductionOrder.objects.exclude(status='completed').count()
-        completed_orders = ProductionOrder.objects.filter(status='completed').count()
+        pending_orders = ProductionOrder.objects.exclude(status__in=['completed', 'delivered']).count()
+        completed_orders = ProductionOrder.objects.filter(status__in=['completed', 'delivered']).count()
         today_orders = ProductionOrder.objects.filter(created_at__date=today).count()
         
         # Son aktiviteler (son 10 işlem)
@@ -116,6 +117,15 @@ def logistic_dashboard_stats(request):
         if last_month_visits > 0:
             visit_percentage = round(((this_month_visits - last_month_visits) / last_month_visits) * 100, 1)
         
+        # Production orders debug - tüm siparişleri getir
+        production_orders_queryset = ProductionOrder.objects.all().order_by('-created_at')
+        print(f"🔍 Production Orders Count: {production_orders_queryset.count()}")
+        for order in production_orders_queryset:
+            print(f"📦 Order: {order.medicine.name} - Status: {order.status} - Patient: {order.patient_name}")
+        
+        # Hasta listesi
+        patients_queryset = Patient.objects.all().order_by('-created_at')
+        
         data = {
             'stats': {
                 'total_patients': total_patients,
@@ -131,7 +141,11 @@ def logistic_dashboard_stats(request):
             },
             'recent_activities': recent_activities,
             'production_orders': ProductionOrderSerializer(
-                ProductionOrder.objects.exclude(status='completed').order_by('-created_at')[:10], 
+                production_orders_queryset, 
+                many=True
+            ).data,
+            'patients': PatientSerializer(
+                patients_queryset,
                 many=True
             ).data,
             'system_status': {
@@ -143,6 +157,79 @@ def logistic_dashboard_stats(request):
         }
         
         return Response(data)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_notifications(request):
+    """Kullanıcı tipine göre bildirimleri getir"""
+    try:
+        # Kullanıcının tipini al
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        user_type = profile.user_type
+        
+        print(f"🔍 Bildirim isteği: User={request.user.username}, Type={user_type}")
+        
+        # Kullanıcı tipine göre bildirimleri filtrele
+        all_notifications = Notification.objects.filter(
+            target_user_type=user_type
+        ).order_by('-created_at')
+        
+        # Okunmamış bildirim sayısı (slice almadan önce)
+        unread_count = all_notifications.filter(is_read=False).count()
+        
+        # Son 20 bildirimi al
+        notifications = all_notifications[:20]
+        
+        print(f"📊 Bulunan bildirim sayısı: {len(notifications)}")
+        
+        serializer = NotificationSerializer(notifications, many=True)
+        
+        print(f"📬 Okunmamış bildirim sayısı: {unread_count}")
+        
+        return Response({
+            'notifications': serializer.data,
+            'unread_count': unread_count
+        })
+        
+    except Exception as e:
+        print(f"❌ Bildirim API hatası: {str(e)}")
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def mark_notification_read(request, notification_id):
+    """Bildirimi okundu olarak işaretle"""
+    try:
+        notification = Notification.objects.get(id=notification_id)
+        notification.is_read = True
+        notification.save()
+        
+        return Response({'success': True})
+        
+    except Notification.DoesNotExist:
+        return Response({'error': 'Bildirim bulunamadı'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def mark_all_notifications_read(request):
+    """Tüm bildirimleri okundu olarak işaretle"""
+    try:
+        # Kullanıcının tipini al
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        user_type = profile.user_type
+        
+        # Kullanıcı tipindeki tüm okunmamış bildirimleri işaretle
+        Notification.objects.filter(
+            target_user_type=user_type,
+            is_read=False
+        ).update(is_read=True)
+        
+        return Response({'success': True})
         
     except Exception as e:
         return Response({'error': str(e)}, status=500)
@@ -299,6 +386,13 @@ class StageMedicineViewSet(viewsets.ModelViewSet):
             created_by=request.user
         )
         
+        # Lojistik için bildirim oluştur
+        try:
+            create_production_request_notification(production_order, request.user)
+            print(f"✅ Bildirim oluşturuldu: {production_order.medicine.name} için")
+        except Exception as e:
+            print(f"❌ Bildirim oluşturma hatası: {str(e)}")
+        
         serializer = ProductionOrderSerializer(production_order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -318,6 +412,7 @@ class ProductionOrderViewSet(viewsets.ModelViewSet):
     def update_status(self, request, pk=None):
         """Üretim emri durumunu güncelle"""
         order = self.get_object()
+        old_status = order.status
         new_status = request.data.get('status')
         
         valid_statuses = [
@@ -334,6 +429,12 @@ class ProductionOrderViewSet(viewsets.ModelViewSet):
         if new_status == 'completed':
             from django.utils import timezone
             order.completed_at = timezone.now()
+            # Tamamlama bildirimi oluştur
+            create_completion_notification(order, request.user)
+        else:
+            # Durum güncelleme bildirimi oluştur
+            create_status_update_notification(order, old_status, new_status, request.user)
+        
         order.save()
         
         serializer = ProductionOrderSerializer(order)
